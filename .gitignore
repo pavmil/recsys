@@ -1,0 +1,10 @@
+Lib/
+Scripts/
+Include/
+etc/
+.venv/
+__pycache__/
+*.pyc
+*.cbm
+*.ipynb_checkpoints
+.env
