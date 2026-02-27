@@ -23,17 +23,16 @@ def get_recommendation(user_id: str)-> dict:
 if __name__ == "__main__":
   base_dir = os.path.dirname(os.path.dirname(__file__))
   model_path = os.path.join(base_dir, "models", "catboost_model.cbm")
-
   model = CatBoostClassifier().load_model(model_path)
 
-#   df = load_features()
-#   x = df[df["action"] != "like"] # убрали старые лайки
-#   x.drop(["target"], axis=1)
-#   probs = model.predict_proba(x)[:, 1]  # вероятность класса 1
-#   x["prob"] = probs
-#   x["target"] = model.predict(x)
-#   x = x[x["target"] == 1]
-#   x = x[["user_id", "post_id", "user_topic_ctr", "prob"]]
-#   x.to_sql("pavel_golovin_data_for_recommendations", con=ENGINE, if_exists="replace", index=False)
+  df = load_features()
+  x = df[df["action"] != "like"] # убрали старые лайки
+  x.drop(["target"], axis=1)
+  probs = model.predict_proba(x)[:, 1]  # вероятность класса 1
+  x["prob"] = probs
+  x["target"] = model.predict(x)
+  x = x[x["target"] == 1]
+  x = x[["user_id", "post_id", "user_topic_ctr", "prob"]]
+  x.to_sql("pavel_golovin_data_for_recommendations", con=ENGINE, if_exists="replace", index=False)
 
   

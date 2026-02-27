@@ -1,6 +1,6 @@
 import os
 from catboost import Pool, cv, CatBoostClassifier
-from sklearn.model_selection import ParameterGrid
+from sklearn.model_selection import ParameterGrid, TimeSeriesSplit
 from feature_upload import load_features
 
 
@@ -11,14 +11,15 @@ if __name__ == "__main__":
   df = load_features()
   X = df.drop("target", axis=1)
   y = df["target"]
-  X_train = X.iloc[:11000000]
-  y_train = y.iloc[:11000000]
-  X_test = X.iloc[11000000:]
-  y_test = y.iloc[11000000:]
 
   cat_features = ["country", "city", "os", "source", "topic", "action", "hour", "gender", "exp_group", "is_weekend"]
 
-  pool = Pool(data=X_train, label=y_train, cat_features=cat_features)
+  pool = Pool(data=X, label=y, cat_features=cat_features)
+
+  n_splits = 3
+  tscv = TimeSeriesSplit(n_splits=n_splits)
+  # CatBoost ожидает список (train_idx, test_idx)
+  folds = list(tscv.split(X, y))
 
   param_grid = {
         'loss_function': ['Logloss', 'CrossEntropy'],
@@ -43,13 +44,15 @@ if __name__ == "__main__":
   best_params = None
   best_iteration = None
   best_cv = None
+
   for params in grid:
     cv_results = cv(
           pool,
           params,
-          fold_count=3,
-          shuffle=True,
-          stratified=True,
+          # вместо fold_count используем заранее подготовленные временные фолды
+          folds=folds,
+          shuffle=False,  # для time series shuffle выключаем
+          stratified=False,
           early_stopping_rounds=30,
           verbose=False,
       )
@@ -64,11 +67,13 @@ if __name__ == "__main__":
 
   print('Лучший AUC:', best_score)
   print('Лучшие параметры:', best_params)
+  print('Лучшая итерация:', best_iteration)
 
+  # обучаем финальную модель на всех данных
   final_model = CatBoostClassifier(**best_params)
   final_model.fit(
-      X_train,
-      y_train,
+      X,
+      y,
       cat_features=cat_features,
       verbose=False,
       use_best_model=True,
